@@ -2,10 +2,6 @@ package github
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
 )
 
 type GithubIssue struct {
@@ -20,32 +16,13 @@ type GithubIssue struct {
 	UpdatedAt string `json:"updated_at"`
 }
 
-type Client struct {
-	client     *http.Client
-	oauthToken string
-}
-
-func NewClient() *Client {
-	return &Client{
-		client:     &http.Client{},
-		oauthToken: os.Getenv("OAUTH_TOKEN"),
-	}
-}
-
 func (c *Client) GetIssues(repo string) ([]*GithubIssue, error) {
-	req, _ := http.NewRequest("GET", repo, nil)
-	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.oauthToken))
-	r, err := c.client.Do(req)
+	body, err := c.Get(repo)
 	if err != nil {
 		return nil, err
 	}
-	defer r.Body.Close()
 
 	var issues []*GithubIssue
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
 	err = json.Unmarshal(body, &issues)
 	if err != nil {
 		return nil, err
