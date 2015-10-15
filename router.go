@@ -1,19 +1,19 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	//"html"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gorilla/mux"
 	"gopkg.in/redis.v3"
+
+	"github.com/adamreese/container-newsfeed/github"
 )
 
 var RedisClient *redis.Client
+var gh = github.NewClient()
 
 func main() {
 
@@ -44,9 +44,13 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func runGithub() {
-	keys := []string{"https://api.github.com/repos/deis/deis/issues", "https://github.com/kubernetes/kubernetes/issues"}
-	for _, key := range keys {
-		github(key)
+	issuesUrl := []string{"https://api.github.com/repos/deis/deis/issues", "https://api.github.com/repos/kubernetes/kubernetes/issues"}
+	for _, url := range issuesUrl {
+		fmt.Printf("%v\n", url)
+		issues, err := gh.GetIssues(url)
+		check(err)
+		fmt.Printf("%v\n", issues[0])
+		RedisClient.Set("time", "githubissue", 0)
 	}
 }
 
@@ -54,31 +58,6 @@ func check(e error) {
 	if e != nil {
 		fmt.Print(e.Error())
 	}
-}
-
-func github(repo string) string {
-	client := &http.Client{}
-	oauthToken := os.Getenv("OAUTH_TOKEN")
-	req, _ := http.NewRequest("GET", repo, nil)
-	req.Header.Add("Authorization", fmt.Sprintf("token %s", oauthToken))
-	r, e := client.Do(req)
-	check(e)
-	defer r.Body.Close()
-
-	var issues []*GithubIssue
-	body, e := ioutil.ReadAll(r.Body)
-	check(e)
-	err := json.Unmarshal(body, &issues)
-	check(err)
-	RedisClient.Set("time", "githubissue", 0)
-	fmt.Println(issues[0].Title)
-	return issues[0].Url
-}
-
-type GithubIssue struct {
-	Url   string `json:"html_url"`
-	Title string `json:"title"`
-	//github_id int    `json:"id"`
 }
 
 func ExampleNewClient() *redis.Client {
