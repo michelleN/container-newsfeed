@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 	"gopkg.in/redis.v3"
 
-	"github.com/adamreese/container-newsfeed/github"
+	"github.com/michelleN/container-newsfeed/github"
 )
 
 var RedisClient *redis.Client
